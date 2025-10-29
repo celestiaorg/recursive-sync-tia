@@ -1,0 +1,7 @@
+[package]
+version = "0.1.0"
+name = "program-verify-consensus-recursion"
+edition = "2021"
+
+[dependencies]
+sp1-zkvm = { workspace = true }

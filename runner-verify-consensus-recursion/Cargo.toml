@@ -1,0 +1,16 @@
+[package]
+version = "0.1.0"
+name = "runner-verify-consensus-recursion"
+edition = "2021"
+
+[dependencies]
+sp1-sdk = { workspace = true }
+serde_json = { workspace = true, features = ["alloc"] }
+serde = { workspace = true, features = ["derive"] }
+clap = { workspace = true, features = ["env"] }
+tracing = { workspace = true }
+hex = { workspace = true }
+dotenv = { workspace = true }
+
+[build-dependencies]
+sp1-build = { workspace = true }

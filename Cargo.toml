@@ -1,0 +1,33 @@
+[workspace]
+members = [
+    "program-verify-consensus-recursion",
+    "runner-verify-consensus-recursion",
+    "scraper",
+    "common"
+]
+resolver = "2"
+default-members = ["scraper"]
+
+[workspace.dependencies]
+# SP1 dependencies
+sp1-sdk = "5.0.8"
+sp1-zkvm = "5.0.8"
+sp1-build = "5.0.8"
+
+# Tendermint dependencies
+tendermint-light-client-verifier = { version = "0.35.0", default-features = false, features = ["rust-crypto"] }
+tendermint = { version = "0.35.0", default-features = false }
+
+# Serialization
+serde_json = { version = "1.0", default-features = false }
+serde = { version = "1.0.200", default-features = false }
+serde_cbor = "0.11.2"
+
+# CLI and utilities
+clap = { version = "4.5.50", features = ["derive"] }
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1.40"
+hex = "0.4.3"
+dotenv = "0.15.0"
+subtle-encoding = "0.5.1"

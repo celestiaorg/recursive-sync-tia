@@ -1,0 +1,23 @@
+[package]
+name = "scraper"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "scraper"
+path = "src/bin/scraper.rs"
+
+[[bin]]
+name = "prover"
+path = "src/bin/prover.rs"
+
+[dependencies]
+tendermint-light-client-verifier = { workspace = true }
+tendermint = { workspace = true }
+serde_json = { workspace = true, features = ["alloc", "std"] }
+serde = { workspace = true, features = ["derive", "std"] }
+serde_cbor = { workspace = true }
+reqwest = { workspace = true }
+subtle-encoding = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
