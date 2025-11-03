@@ -42,7 +42,12 @@ pub fn main() {
     if h1.is_some() {
         match proof_type {
             ProofType::Stark => {
-                sp1_zkvm::lib::verify::verify_sp1_proof(&[0u32; 8], &[0u8; 32]);
+                let vk_digest: [u32; 8] = sp1_zkvm::io::read();
+                let pv_digest: [u8; 32] = sp1_zkvm::io::read();
+                sp1_zkvm::lib::verify::verify_sp1_proof(&vk_digest, &pv_digest);
+                if should_checkpoint {
+                } else {
+                }
             }
             ProofType::Groth16 => {
                 //sp1_zkvm::lib::verify::verify_sp1_proof(&[0u32; 8], &[0u8; 32]);

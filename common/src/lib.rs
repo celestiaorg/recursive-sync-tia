@@ -12,6 +12,8 @@ pub enum ProofType {
 #[derive(Serialize, Deserialize)]
 pub struct Groth16VkeyCheckpoint {
     pub version: u32,
+    pub block_height: [u8; 32],
     pub block_hash: [u8; 32],
     pub groth16_vk: [u8; 32],
+    pub program_vk_hash: [u8; 32],
 }
