@@ -1,6 +1,12 @@
 # recursive-sync-tia
 Verify the entire blockchain's consensus history, from genesis to network head, with one succinct proof.
 
+**Use Cases**:
+- Data bridging
+  - validate Celestia blob inclusion for rollups on *any blockchain*, even ones without [Blobstream](https://docs.celestia.org/how-to-guides/blobstream).
+- Fast-sync light clients
+  - augment light nodes to instantly find a trustworthy network head to start backwards syncing.
+
 ## Scraper Tool
 This repo includes a tool that will download the minimum number of blocks to verify an entire chain's consensus history, using [Tendermint Skipping Verification](https://medium.com/tendermint/everything-you-need-to-know-about-the-tendermint-light-client-f80d03856f98).
 
