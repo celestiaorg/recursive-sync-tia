@@ -24,6 +24,4 @@ On Celestia mainnet, we found that only 53 blocks are needed to verify the eneti
 
 SP1 recursion has [been known](https://github.com/S1nus/celestia-recursive-sync/issues/3) to break on upgrade boundaries (e.g, a new version of SP1 verifying a proof from an older version). As a fix, this repo supports using the groth16 verifier as an intermediary; SP1 might evolve over time, but groth16 is always groth16.
 
-We accumulate a history of changes to the groth16 verification key in the public inputs of the proof, so anyone can verify all changes to the long-running chain of proofs.
-
-We carry the history of vkey changes as proof-carrying data through the chain of recursive proofs.
+We accumulate a [history of changes](https://github.com/celestiaorg/recursive-sync-tia/blob/main/program-verify-consensus-recursion/src/main.rs#L18) as proof-carrying data to the groth16 verification key in the public inputs of the proof, so anyone can verify all changes to the long-running chain of proofs.
