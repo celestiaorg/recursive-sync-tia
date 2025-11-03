@@ -19,3 +19,9 @@ cargo run -p scraper --bin scraper -- --output-path ~/.crs --rpc-url https://YOU
 ```
 
 On Celestia mainnet, we found that only 53 blocks are needed to verify the enetire chain from genesis to 8144463
+
+## Accumulating Versioned Verification Keys
+
+SP1 recursion has [been known](https://github.com/S1nus/celestia-recursive-sync/issues/3) to break on upgrade boundaries (e.g, a new version of SP1 verifying a proof from an older version). As a fix, this repo supports using the groth16 verifier as an intermediary.
+
+We accumulate a history of changes to the groth16 verification key in the public inputs of the proof, so anyone can verify all changes to the long-running chain of proofs.

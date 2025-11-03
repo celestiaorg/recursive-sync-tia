@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 sp1-zkvm = { workspace = true, features = ["verify"] }
+sp1-verifier = { workspace = true }
 serde_cbor = "0.11.2"
 bincode = "2.0.1"
 serde = { version = "1.0", default-features = false, features = ["derive", "std"] }

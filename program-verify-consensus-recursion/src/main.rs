@@ -9,8 +9,13 @@
 sp1_zkvm::entrypoint!(main);
 
 use tendermint_light_client_verifier::types::LightBlock;
-use common::ProofType;
+use common::{ProofType, Groth16VkeyCheckpoint};
+use sp1_verifier::Groth16Verifier;
 pub fn main() {
+
+    // Read checkpoints
+    let should_checkpoint: bool = sp1_zkvm::io::read();
+    let checkpoints: Vec<Groth16VkeyCheckpoint> = sp1_zkvm::io::read();
 
     // Read genesis hash and commit it
     let genesis_hash = sp1_zkvm::io::read_vec();
@@ -41,6 +46,7 @@ pub fn main() {
             }
             ProofType::Groth16 => {
                 //sp1_zkvm::lib::verify::verify_sp1_proof(&[0u32; 8], &[0u8; 32]);
+                Groth16Verifier::verify(&[0u8; 32], &[0u8; 32], "", &[0u8; 32]).expect("failed to verify proof");
             }
         }
     }
