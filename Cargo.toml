@@ -14,6 +14,10 @@ sp1-sdk = "5.0.8"
 sp1-zkvm = "5.0.8"
 sp1-build = "5.0.8"
 
+sha2 = "0.10.9"
+
+common = { path = "common" }
+
 # Tendermint dependencies
 tendermint-light-client-verifier = { version = "0.35.0", default-features = false, features = ["rust-crypto"] }
 tendermint = { version = "0.35.0", default-features = false }
@@ -31,3 +35,6 @@ tracing = "0.1.40"
 hex = "0.4.3"
 dotenv = "0.15.0"
 subtle-encoding = "0.5.1"
+
+[patch.crates-io]
+sha2-v0-10-9 = { git = "https://github.com/sp1-patches/RustCrypto-hashes", package = "sha2", tag = "patch-sha2-0.10.9-sp1-4.0.0" }

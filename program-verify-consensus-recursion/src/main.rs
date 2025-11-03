@@ -8,14 +8,40 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
+use tendermint_light_client_verifier::types::LightBlock;
+use common::ProofType;
 pub fn main() {
-    // Read an input to the program.
-    //
-    // Behind the scenes, this compiles down to a custom system call which handles reading inputs
-    // from the prover.
-    let n = sp1_zkvm::io::read::<u32>();
 
-    // Commit to the public values of the program. The final proof will have a commitment to all the
-    // bytes that were committed to.
-    sp1_zkvm::io::commit_slice(&n.to_le_bytes().as_slice());
+    // Read genesis hash and commit it
+    let genesis_hash = sp1_zkvm::io::read_vec();
+    sp1_zkvm::io::commit(&genesis_hash);
+
+    // Read h1 with presence flag
+    // serde_cbor doesn't work nicely with Option<T> so we use this flag as a workaround
+    let h1_present: bool = sp1_zkvm::io::read();
+    let h1_bytes = sp1_zkvm::io::read_vec();
+    let h1: Option<LightBlock> = if h1_present {
+        Some(serde_cbor::from_slice(&h1_bytes).expect("couldn't deserialize h1"))
+    } else {
+        None
+    };
+
+    // Read h2 and commit its hash
+    let h2_bytes = sp1_zkvm::io::read_vec();
+    let h2: LightBlock = serde_cbor::from_slice(&h2_bytes).expect("couldn't deserialize h2");
+    // commit h2 hash
+    sp1_zkvm::io::commit(&h2.signed_header.header().hash().as_bytes().to_vec());
+    
+    let proof_type: ProofType = sp1_zkvm::io::read::<ProofType>();
+    
+    if h1.is_some() {
+        match proof_type {
+            ProofType::Stark => {
+                sp1_zkvm::lib::verify::verify_sp1_proof(&[0u32; 8], &[0u8; 32]);
+            }
+            ProofType::Groth16 => {
+                //sp1_zkvm::lib::verify::verify_sp1_proof(&[0u32; 8], &[0u8; 32]);
+            }
+        }
+    }
 }
