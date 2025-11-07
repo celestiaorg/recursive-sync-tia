@@ -19,13 +19,6 @@ mod buffer;
 use buffer::Buffer;
 use sha2::{Digest, Sha256};
 
-/// Check if we're at an upgrade boundary by checking if h1's block hash matches any checkpoint
-fn is_at_upgrade_boundary(h1: &LightBlock, checkpoints: &[Groth16VkeyCheckpoint]) -> bool {
-    let binding = h1.signed_header.header().hash();
-    let h1_hash = binding.as_bytes();
-    checkpoints.iter().any(|cp| cp.block_hash == h1_hash)
-}
-
 pub fn main() {
 
     // Read checkpoints
@@ -88,6 +81,10 @@ pub fn main() {
     let previous_proof_genesis_hash: Vec<u8> = public_values_buffer.read();
     let previous_proof_h2_hash: Vec<u8> = public_values_buffer.read();
     let previous_proof_vkey_digest: Vec<u8> = public_values_buffer.read();
+
+    if !is_upgrade && (previous_proof_vkey_digest != vk_digest_byte_slice) {
+        panic!("Vkey must match previous proof's vkey, unless it's an upgrade");
+    }
 
     match proof_type {
         ProofType::Stark => {
