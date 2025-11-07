@@ -36,49 +36,65 @@ pub fn main() {
     let genesis_hash = sp1_zkvm::io::read_vec();
     sp1_zkvm::io::commit(&genesis_hash);
 
-    // Read h1 with presence flag
-    // serde_cbor doesn't work nicely with Option<T> so we use this flag as a workaround
-    let h1_present: bool = sp1_zkvm::io::read();
+    // read h1
     let h1_bytes = sp1_zkvm::io::read_vec();
-    let h1: Option<LightBlock> = if h1_present {
-        Some(serde_cbor::from_slice(&h1_bytes).expect("couldn't deserialize h1"))
-    } else {
-        None
-    };
+    let h1: LightBlock = serde_cbor::from_slice(&h1_bytes).expect("couldn't deserialize h1");
 
     // Read h2 and commit its hash
     let h2_bytes = sp1_zkvm::io::read_vec();
     let h2: LightBlock = serde_cbor::from_slice(&h2_bytes).expect("couldn't deserialize h2");
-    // If h1 is none, h2 must be the genesis block
-    if h1.is_none() && &h2.signed_header.header().hash().as_bytes().to_vec() != &genesis_hash {
-        panic!("h1 is none but h2 hash does not match genesis hash");
-    }
-    // commit h2 hash
     sp1_zkvm::io::commit(&h2.signed_header.header().hash().as_bytes().to_vec());
     
-    if let Some(h1) = h1 {
+    let vp = ProdVerifier::default();
+    let opt = Options {
+        trust_threshold: Default::default(),
+        // 2 week trusting period.
+        trusting_period: Duration::from_secs(14 * 24 * 60 * 60),
+        clock_drift: Default::default(),
+    };
 
-        let vp = ProdVerifier::default();
-        let opt = Options {
-            trust_threshold: Default::default(),
-            // 2 week trusting period.
-            trusting_period: Duration::from_secs(14 * 24 * 60 * 60),
-            clock_drift: Default::default(),
-        };
+    // Get verification time (target block time + some buffer)
+    let verify_time = (h2.time() + Duration::from_secs(20))
+        .expect("Failed to calculate verify time");
 
-        // Get verification time (target block time + some buffer)
-        let verify_time = (h2.time() + Duration::from_secs(20))
-            .expect("Failed to calculate verify time");
+    let verdict = vp.verify_update_header(
+        h2.as_untrusted_state(),
+        h1.as_trusted_state(),
+        &opt,
+        verify_time,
+    );
 
-        let verdict = vp.verify_update_header(
-            h2.as_untrusted_state(),
-            h1.as_trusted_state(),
-            &opt,
-            verify_time,
-        );
+    if verdict != Verdict::Success {
+        panic!("Verification failed");
+    }
 
-        if verdict != Verdict::Success {
-            panic!("Verification failed");
+    // if h1 is the genesis block, there won't be a previous proof, so just return.
+    if h1.signed_header.header().hash().as_bytes().to_vec() == genesis_hash {
+        return
+    }
+
+    let proof_type: ProofType = sp1_zkvm::io::read();
+    let vk_digest: [u32; 8] = sp1_zkvm::io::read();
+    sp1_zkvm::io::commit(&vk_digest);
+    let vk_digest_byte_slice: &[u8] = unsafe {
+        core::slice::from_raw_parts(vk_digest.as_ptr() as *const u8, vk_digest.len() * core::mem::size_of::<u32>())
+    };
+    let pv_digest: [u8; 32] = sp1_zkvm::io::read();
+
+    let public_values: Vec<u8> = sp1_zkvm::io::read();
+    let mut public_values_buffer = Buffer::from(&public_values);
+    let public_values_digest = Sha256::digest(&public_values);
+
+    let previous_proof_genesis_hash: Vec<u8> = public_values_buffer.read();
+    let previous_proof_h2_hash: Vec<u8> = public_values_buffer.read();
+    let previous_proof_vkey_digest: Vec<u8> = public_values_buffer.read();
+
+    match proof_type {
+        ProofType::Stark => {
+            sp1_zkvm::lib::verify::verify_sp1_proof(&vk_digest, &pv_digest);
+        },
+        _ => {
+            panic!("Not supported yet");
         }
     }
 
