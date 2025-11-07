@@ -4965,6 +4965,7 @@ name = "runner-verify-consensus-recursion"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "common",
  "dotenv",
  "hex",
  "serde",

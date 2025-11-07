@@ -49,80 +49,14 @@ pub fn main() {
     // Read h2 and commit its hash
     let h2_bytes = sp1_zkvm::io::read_vec();
     let h2: LightBlock = serde_cbor::from_slice(&h2_bytes).expect("couldn't deserialize h2");
+    // If h1 is none, h2 must be the genesis block
+    if h1.is_none() && &h2.signed_header.header().hash().as_bytes().to_vec() != &genesis_hash {
+        panic!("h1 is none but h2 hash does not match genesis hash");
+    }
     // commit h2 hash
     sp1_zkvm::io::commit(&h2.signed_header.header().hash().as_bytes().to_vec());
     
-    // is the previous iteration a Groth16, Stark, or neither
-    let proof_type: ProofType = sp1_zkvm::io::read::<ProofType>();
-    
-    let groth16_vk: [u8; 32] = sp1_zkvm::io::read();
-    let program_vk: [u32; 8] = sp1_zkvm::io::read();
-    let program_vk_byte_slice: &[u8] = unsafe {
-        core::slice::from_raw_parts(program_vk.as_ptr() as *const u8, program_vk.len() * core::mem::size_of::<u32>())
-    };
-
-    let public_values: Vec<u8> = sp1_zkvm::io::read_vec();
-    let mut public_values_buffer = Buffer::from(&public_values);
-    let public_values_hash: [u8; 32] = Sha256::digest(&public_values).into();
-
     if let Some(h1) = h1 {
-
-        let previous_genesis: Vec<u8> = public_values_buffer.read();
-        let previous_h2_hash: Vec<u8> = public_values_buffer.read();
-
-        if previous_genesis != genesis_hash {
-            panic!("Previous genesis hash does not match current genesis hash");
-
-        }
-        if previous_h2_hash != h1.signed_header.header().hash().as_bytes().to_vec() {
-            panic!("Previous h2 hash does not match current h2 hash");
-        }
-
-        // Determine if we're at an upgrade boundary
-        let at_upgrade_boundary = is_at_upgrade_boundary(&h1, &last_checkpoints);
-
-        // Verify is_upgrade input matches actual upgrade boundary
-        if is_upgrade && !at_upgrade_boundary {
-            panic!("is_upgrade is true but h1 is not at an upgrade boundary according to last_checkpoints");
-        }
-        if !is_upgrade && at_upgrade_boundary {
-            panic!("is_upgrade is false but h1 is at an upgrade boundary according to last_checkpoints");
-        }
-
-        match proof_type {
-            ProofType::Stark => {
-                sp1_zkvm::lib::verify::verify_sp1_proof(&program_vk, &public_values_hash);
-
-                // Verify that the verification key matches unless we're at an upgrade boundary
-                if !is_upgrade {
-                    let previous_program_vk_hash: [u8; 32] = public_values_buffer.read();
-                    let current_program_vk_hash: [u8; 32] = Sha256::digest(program_vk_byte_slice).into();
-                    if previous_program_vk_hash != current_program_vk_hash {
-                        panic!("Program verification key changed but is_upgrade is false");
-                    }
-                }
-            }
-            ProofType::Groth16 => {
-                // Read Groth16 proof from IO
-                let groth16_proof: Vec<u8> = sp1_zkvm::io::read_vec();
-
-                // Convert program_vk hash to hex string for sp1_vkey_hash parameter
-                let program_vk_hash = Sha256::digest(program_vk_byte_slice);
-                let sp1_vkey_hash_hex = hex::encode(program_vk_hash);
-
-                // Verify the Groth16 proof
-                Groth16Verifier::verify(&groth16_proof, &public_values_hash, &sp1_vkey_hash_hex, &groth16_vk)
-                    .expect("failed to verify groth16 proof");
-
-                // Verify that the verification key matches unless we're at an upgrade boundary
-                if !is_upgrade {
-                    let previous_groth16_vk: [u8; 32] = public_values_buffer.read();
-                    if previous_groth16_vk != groth16_vk {
-                        panic!("Groth16 verification key changed but is_upgrade is false");
-                    }
-                }
-            }
-        }
 
         let vp = ProdVerifier::default();
         let opt = Options {
@@ -141,7 +75,6 @@ pub fn main() {
             h1.as_trusted_state(),
             &opt,
             verify_time,
-
         );
 
         if verdict != Verdict::Success {
