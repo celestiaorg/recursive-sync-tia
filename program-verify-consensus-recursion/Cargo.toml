@@ -6,9 +6,10 @@ edition = "2021"
 [dependencies]
 sp1-zkvm = { workspace = true, features = ["verify"] }
 sp1-verifier = { workspace = true }
-serde_cbor = "0.11.2"
-bincode = "2.0.1"
+serde_cbor = { workspace = true }
+bincode = { workspace = true }
 serde = { version = "1.0", default-features = false, features = ["derive", "std"] }
 tendermint-light-client-verifier = { workspace = true, features = ["rust-crypto"] }
 sha2 = { workspace = true }
 common = { workspace = true }
+hex = { workspace = true }
