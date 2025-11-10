@@ -12,7 +12,7 @@ name = "run_program"
 path = "src/bin/run_program.rs"
 
 [dependencies]
-sp1-sdk = { workspace = true }
+sp1-sdk = { workspace = true , default-features = false }
 serde_json = { workspace = true, features = ["alloc"] }
 serde_cbor = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

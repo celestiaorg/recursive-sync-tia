@@ -1,5 +1,7 @@
 use clap::Parser;
-use sp1_sdk::{include_elf, ProverClient, SP1Stdin, Prover};
+use sp1_sdk::{include_elf, ProverClient, SP1Stdin, Prover, 
+    network::{FulfillmentStrategy, NetworkMode},
+};
 use std::fs;
 use std::path::PathBuf;
 use tendermint_light_client_verifier::types::LightBlock;
@@ -34,6 +36,10 @@ struct Args {
     /// Path to output proof file
     #[arg(short = 'o', long, value_name = "PATH")]
     output_proof: PathBuf,
+
+    /// dry run mode
+    #[arg(short = 'd', long, default_value_t = false)]
+    dry_run: bool,
 }
 
 fn main() {
@@ -111,7 +117,7 @@ fn main() {
 
     // Setup the prover client.
     let client = ProverClient::builder()
-        .network()
+        .network_for(NetworkMode::Mainnet)
         .private_key(&args.private_key)
         .build();
 
@@ -136,16 +142,26 @@ fn main() {
 
     let (pk, _vk) = client.setup(CONSENSUS_VERIFIER_RECURSION_ELF);
 
-    let proof = client
-        .prove(&pk, &stdin)
-        .compressed()
-        .run()
-        .expect("failed to generate proof");
+    if !args.dry_run {
+        let proof = client
+            .prove(&pk, &stdin)
+            .strategy(FulfillmentStrategy::Auction)
+            .compressed()
+            .run()
+            .expect("failed to generate proof");
 
-    // Save proof to output location as JSON
-    let output_path = &args.output_proof;
-    let proof_json = serde_json::to_string_pretty(&proof).expect("failed to serialize proof as JSON");
-    fs::write(output_path, &proof_json).expect("failed to write proof JSON to output location");
-    println!("Proof successfully saved to {:?}", output_path);
+        // Save proof to output location as JSON
+        let output_path = &args.output_proof;
+        let proof_json = serde_json::to_string_pretty(&proof).expect("failed to serialize proof as JSON");
+        fs::write(output_path, &proof_json).expect("failed to write proof JSON to output location");
+        println!("Proof successfully saved to {:?}", output_path);
+    } else {
+        let result = client
+            .execute(CONSENSUS_VERIFIER_RECURSION_ELF, &stdin)
+            .run()
+            .expect("failed to execute program");
 
+        let (_public_values, execution_report) = result;
+        println!("Execution report: {:?}", execution_report);
+    }
 }
