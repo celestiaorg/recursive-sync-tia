@@ -1,5 +1,6 @@
 use clap::Parser;
-use sp1_sdk::{include_elf, ProverClient, SP1Stdin, Prover, 
+use sp1_verifier;
+use sp1_sdk::{include_elf, ProverClient, SP1Stdin, SP1ProofWithPublicValues, Prover,
     network::{FulfillmentStrategy, NetworkMode},
 };
 use std::fs;
@@ -33,6 +34,10 @@ struct Args {
     #[arg(short = 'k', long, value_name = "PRIVATE_KEY")]
     private_key: String,
 
+    /// previous proof file
+    #[arg(short = 'p', long, value_name = "PATH")]
+    previous_proof: Option<PathBuf>,
+
     /// Path to output proof file
     #[arg(short = 'o', long, value_name = "PATH")]
     output_proof: PathBuf,
@@ -45,6 +50,9 @@ struct Args {
 fn main() {
     // Setup the logger.
     sp1_sdk::utils::setup_logger();
+
+    let groth16_vk_bytes = sp1_verifier::GROTH16_VK_BYTES.clone();
+    println!("Groth16 VK bytes length: {:?}", groth16_vk_bytes.len());
 
     // Parse the command line arguments.
     let args = Args::parse();
@@ -114,6 +122,23 @@ fn main() {
         },
         None => Vec::new(),
     };
+
+    // Check if h1 is the same as genesis
+    let genesis_hash = genesis.signed_header.header().hash();
+    let h1_hash = h1.signed_header.header().hash();
+    let h1_is_genesis = genesis_hash == h1_hash;
+
+    if !h1_is_genesis {
+        if args.previous_proof.is_none() {
+            eprintln!("Error: previous_proof is required when h1 is not the same as genesis");
+            std::process::exit(1);
+        }
+        let previous_proof_path = args.previous_proof.as_ref().unwrap();
+        if !previous_proof_path.exists() {
+            eprintln!("Error: previous_proof file does not exist: {:?}", previous_proof_path);
+            std::process::exit(1);
+        }
+    }
 
     // Setup the prover client.
     let client = ProverClient::builder()

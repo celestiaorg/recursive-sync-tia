@@ -1,5 +1,6 @@
 use clap::Parser;
 use sp1_sdk::{include_elf, ProverClient, SP1Stdin};
+use sp1_verifier;
 use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;

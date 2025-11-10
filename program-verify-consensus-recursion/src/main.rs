@@ -137,7 +137,7 @@ pub fn main() {
         if incoming_checkpoint.program_vk_hash != previous_proof_vkey_digest {
             panic!("Program vkey hash must match previous proof's program vkey hash");
         }
-        match incoming_checkpoint.groth16_vk {
+        match &incoming_checkpoint.groth16_vk {
                 Some(vk) => {
                     println!("cycle-tracker-start: verify previous groth16 proof for upgrade");
                     // Convert program_vk_hash [u32; 8] to hex string

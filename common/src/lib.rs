@@ -13,6 +13,6 @@ pub enum ProofType {
 pub struct Groth16VkeyCheckpoint {
     pub block_height: [u8; 32],
     pub block_hash: [u8; 32],
-    pub groth16_vk: Option<[u8; 32]>,
+    pub groth16_vk: Option<Vec<u8>>,
     pub program_vk_hash: [u32; 8],
 }

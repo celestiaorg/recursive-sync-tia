@@ -13,6 +13,7 @@ path = "src/bin/run_program.rs"
 
 [dependencies]
 sp1-sdk = { workspace = true , default-features = false }
+sp1-verifier = { workspace = true }
 serde_json = { workspace = true, features = ["alloc"] }
 serde_cbor = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
