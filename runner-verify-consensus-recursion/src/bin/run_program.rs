@@ -30,6 +30,10 @@ struct Args {
     /// Private key for the prover client
     #[arg(short = 'k', long, value_name = "PRIVATE_KEY")]
     private_key: String,
+
+    /// Path to output proof file
+    #[arg(short = 'o', long, value_name = "PATH")]
+    output_proof: PathBuf,
 }
 
 fn main() {
@@ -130,12 +134,18 @@ fn main() {
     let h2_bytes = serde_cbor::to_vec(&h2).unwrap();
     stdin.write_vec(h2_bytes);
 
-    let (_pk, _vk) = client.setup(CONSENSUS_VERIFIER_RECURSION_ELF);
+    let (pk, _vk) = client.setup(CONSENSUS_VERIFIER_RECURSION_ELF);
 
-    let result = client
-        .execute(CONSENSUS_VERIFIER_RECURSION_ELF, &stdin)
+    let proof = client
+        .prove(&pk, &stdin)
+        .compressed()
         .run()
-        .expect("failed to execute program");
+        .expect("failed to generate proof");
 
-    let (_public_values, _execution_report) = result;
+    // Save proof to output location as JSON
+    let output_path = &args.output_proof;
+    let proof_json = serde_json::to_string_pretty(&proof).expect("failed to serialize proof as JSON");
+    fs::write(output_path, &proof_json).expect("failed to write proof JSON to output location");
+    println!("Proof successfully saved to {:?}", output_path);
+
 }
