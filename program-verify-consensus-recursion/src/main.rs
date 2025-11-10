@@ -8,7 +8,7 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use common::{ProofType, Groth16VkeyCheckpoint};
+use common::Groth16VkeyCheckpoint;
 use sp1_verifier::Groth16Verifier;
 use std::time::Duration;
 use tendermint_light_client_verifier::{
@@ -23,7 +23,8 @@ pub fn main() {
 
     // Read checkpoints
     let is_upgrade: bool = sp1_zkvm::io::read();
-    let last_checkpoints: Vec<Groth16VkeyCheckpoint> = sp1_zkvm::io::read();
+    let checkpoints: Vec<Groth16VkeyCheckpoint> = sp1_zkvm::io::read();
+    sp1_zkvm::io::commit(&checkpoints);
 
     // Read genesis hash and commit it
     let genesis_hash = sp1_zkvm::io::read_vec();
@@ -66,33 +67,73 @@ pub fn main() {
         return
     }
 
-    let proof_type: ProofType = sp1_zkvm::io::read();
     let vk_digest: [u32; 8] = sp1_zkvm::io::read();
     sp1_zkvm::io::commit(&vk_digest);
     let vk_digest_byte_slice: &[u8] = unsafe {
         core::slice::from_raw_parts(vk_digest.as_ptr() as *const u8, vk_digest.len() * core::mem::size_of::<u32>())
     };
+
+    let previous_groth16_proof: Vec<u8> = sp1_zkvm::io::read();
+
     let pv_digest: [u8; 32] = sp1_zkvm::io::read();
 
     let public_values: Vec<u8> = sp1_zkvm::io::read();
     let mut public_values_buffer = Buffer::from(&public_values);
     let public_values_digest = Sha256::digest(&public_values);
 
+    let previous_proof_checkpoints: Vec<Groth16VkeyCheckpoint> = public_values_buffer.read();
     let previous_proof_genesis_hash: Vec<u8> = public_values_buffer.read();
     let previous_proof_h2_hash: Vec<u8> = public_values_buffer.read();
-    let previous_proof_vkey_digest: Vec<u8> = public_values_buffer.read();
+    let previous_proof_vkey_digest: [u32; 8] = public_values_buffer.read();
 
-    if !is_upgrade && (previous_proof_vkey_digest != vk_digest_byte_slice) {
-        panic!("Vkey must match previous proof's vkey, unless it's an upgrade");
+    if previous_proof_genesis_hash != genesis_hash {
+        panic!("Genesis hash must match previous proof's genesis hash");
     }
 
-    match proof_type {
-        ProofType::Stark => {
-            sp1_zkvm::lib::verify::verify_sp1_proof(&vk_digest, &pv_digest);
-        },
-        _ => {
-            panic!("Not supported yet");
+    if !is_upgrade {
+        if previous_proof_vkey_digest != vk_digest {
+            panic!("Vkey must match previous proof's vkey, except for upgrades");
         }
+
+        if previous_proof_checkpoints != checkpoints[..previous_proof_checkpoints.len()] {
+            panic!("Checkpoints must match previous proof's checkpoints, except for upgrades");
+        }
+
+        sp1_zkvm::lib::verify::verify_sp1_proof(&vk_digest, &pv_digest);
+
+    } else {
+
+        if previous_proof_checkpoints.len()+1 != checkpoints.len() {
+            panic!("During upgrade, the number of checkpoints must increase by 1");
+        }
+
+        let incoming_checkpoint = &checkpoints[checkpoints.len() - 1];
+
+        if incoming_checkpoint.program_vk_hash != previous_proof_vkey_digest {
+            panic!("Program vkey hash must match previous proof's program vkey hash");
+        }
+        match incoming_checkpoint.groth16_vk {
+                Some(vk) => {
+                    // Convert program_vk_hash [u32; 8] to hex string
+                    let vk_hash_bytes: Vec<u8> = incoming_checkpoint
+                        .program_vk_hash
+                        .iter()
+                        .flat_map(|&word| word.to_le_bytes())
+                        .collect();
+                    let vk_hash_hex = hex::encode(&vk_hash_bytes);
+
+                    Groth16Verifier::verify(
+                        &previous_groth16_proof,
+                        &public_values_digest,
+                        &vk_hash_hex,
+                        &vk
+                    ).expect("Failed to verify previous groth16 proof");
+
+                },
+                None => {
+                    sp1_zkvm::lib::verify::verify_sp1_proof(&vk_digest, &pv_digest);
+                }
+            }
     }
 
 }
