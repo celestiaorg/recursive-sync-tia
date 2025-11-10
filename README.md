@@ -8,7 +8,7 @@ Verify the entire blockchain's consensus history, from genesis to network head, 
   - augment light nodes to instantly find a trustworthy network head to start backwards syncing.
 
 ## Scraper Tool
-This repo includes a tool that will download the minimum number of blocks to verify an entire chain's consensus history, using [Tendermint Skipping Verification](https://medium.com/tendermint/everything-you-need-to-know-about-the-tendermint-light-client-f80d03856f98).
+This repo includes a tool that will download the minimum number of blocks to verify an entire chain's consensus history, using [Tendermint Skipping Verification](https://medium.com/tendermint/everything-you-need-to-know-about-the-tendermint-light-client-f80d03856f98). It performs a binary search to minimize RPC queries while finding the shortest path.
 
 **How to use the scraper tool**:
 
