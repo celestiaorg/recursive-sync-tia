@@ -1,6 +1,6 @@
 use clap::Parser;
 use sp1_verifier;
-use sp1_sdk::{include_elf, ProverClient, SP1Stdin, SP1ProofWithPublicValues, Prover,
+use sp1_sdk::{include_elf, ProverClient, SP1Stdin, SP1ProofWithPublicValues, Prover, HashableKey,
     network::{FulfillmentStrategy, NetworkMode},
 };
 use std::fs;
@@ -128,6 +128,7 @@ fn main() {
     let h1_hash = h1.signed_header.header().hash();
     let h1_is_genesis = genesis_hash == h1_hash;
 
+    let mut previous_proof: Option<SP1ProofWithPublicValues> = None;
     if !h1_is_genesis {
         if args.previous_proof.is_none() {
             eprintln!("Error: previous_proof is required when h1 is not the same as genesis");
@@ -138,13 +139,18 @@ fn main() {
             eprintln!("Error: previous_proof file does not exist: {:?}", previous_proof_path);
             std::process::exit(1);
         }
+        let previous_proof_content = fs::read_to_string(previous_proof_path).unwrap();
+        previous_proof = Some(serde_json::from_str(&previous_proof_content).unwrap());
     }
+
 
     // Setup the prover client.
     let client = ProverClient::builder()
         .network_for(NetworkMode::Mainnet)
         .private_key(&args.private_key)
         .build();
+
+    let (pk, vk) = client.setup(CONSENSUS_VERIFIER_RECURSION_ELF);
 
     let mut stdin = SP1Stdin::new();
 
@@ -165,7 +171,20 @@ fn main() {
     let h2_bytes = serde_cbor::to_vec(&h2).unwrap();
     stdin.write_vec(h2_bytes);
 
-    let (pk, _vk) = client.setup(CONSENSUS_VERIFIER_RECURSION_ELF);
+    if let Some(previous_proof) = previous_proof {
+        // Compute and write vk_digest
+        stdin.write(&vk.vk.hash_u32());
+        if let Some(groth16_proof) = previous_proof.proof.try_as_groth_16() {
+            stdin.write_vec(groth16_proof.raw_proof.as_bytes().to_vec());
+        } else {
+            stdin.write_vec(vec![]);
+        }
+
+        // In the old version i use write instead of write_vec
+        // don't remember why.
+        stdin.write(&previous_proof.public_values.to_vec());
+    }
+
 
     if !args.dry_run {
         let proof = client
