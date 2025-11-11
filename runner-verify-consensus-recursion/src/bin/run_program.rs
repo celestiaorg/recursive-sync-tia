@@ -1,6 +1,6 @@
 use clap::Parser;
 use sp1_verifier;
-use sp1_sdk::{include_elf, ProverClient, SP1Stdin, SP1ProofWithPublicValues, Prover, HashableKey,
+use sp1_sdk::{include_elf, ProverClient, SP1Stdin, SP1ProofWithPublicValues, Prover, HashableKey, SP1Proof,
     network::{FulfillmentStrategy, NetworkMode},
 };
 use std::fs;
@@ -143,7 +143,6 @@ fn main() {
         previous_proof = Some(serde_json::from_str(&previous_proof_content).unwrap());
     }
 
-
     // Setup the prover client.
     let client = ProverClient::builder()
         .network_for(NetworkMode::Mainnet)
@@ -171,13 +170,22 @@ fn main() {
     let h2_bytes = serde_cbor::to_vec(&h2).unwrap();
     stdin.write_vec(h2_bytes);
 
+    // Write vk digest
+    stdin.write(&vk.vk.hash_u32());
+
     if let Some(previous_proof) = previous_proof {
-        // Compute and write vk_digest
-        stdin.write(&vk.vk.hash_u32());
-        if let Some(groth16_proof) = previous_proof.proof.try_as_groth_16() {
-            stdin.write(&groth16_proof.raw_proof.as_bytes().to_vec());
-        } else {
-            stdin.write(&Vec::<u8>::new());
+        // Check proof type and write groth16 proof if applicable
+        match &previous_proof.proof {
+            SP1Proof::Compressed(compressed_stark_proof) => {
+                stdin.write(&Vec::<u8>::new());
+                stdin.write_proof(compressed_stark_proof.as_ref().clone(), vk.vk.clone());
+            },
+            SP1Proof::Groth16(groth16_proof) => {
+                stdin.write(&groth16_proof.raw_proof.as_bytes().to_vec());
+            },
+            _ => {
+                panic!("Unsupported proof type");
+            }
         }
 
         // write pv digest

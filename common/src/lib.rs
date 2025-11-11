@@ -9,7 +9,7 @@ pub enum ProofType {
     Groth16,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Groth16VkeyCheckpoint {
     pub block_height: [u8; 32],
     pub block_hash: [u8; 32],

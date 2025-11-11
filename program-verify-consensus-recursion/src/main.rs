@@ -72,6 +72,14 @@ pub fn main() {
     }
     println!("cycle-tracker-end: setup verifier and verify consensus");
 
+    println!("cycle-tracker-start: read and commit (current) vk digest");
+    let vk_digest: [u32; 8] = sp1_zkvm::io::read();
+    sp1_zkvm::io::commit(&vk_digest);
+    let vk_digest_byte_slice: &[u8] = unsafe {
+        core::slice::from_raw_parts(vk_digest.as_ptr() as *const u8, vk_digest.len() * core::mem::size_of::<u32>())
+    };
+    println!("cycle-tracker-end: read and commit (current) vk digest");
+
     println!("cycle-tracker-start: check if h1 is the genesis block");
     // if h1 is the genesis block, there won't be a previous proof, so just return.
     if h1.signed_header.header().hash().as_bytes().to_vec() == genesis_hash {
@@ -79,14 +87,6 @@ pub fn main() {
         return
     }
     println!("cycle-tracker-end: check if h1 is the genesis block");
-
-    println!("cycle-tracker-start: read vk digest");
-    let vk_digest: [u32; 8] = sp1_zkvm::io::read();
-    sp1_zkvm::io::commit(&vk_digest);
-    let vk_digest_byte_slice: &[u8] = unsafe {
-        core::slice::from_raw_parts(vk_digest.as_ptr() as *const u8, vk_digest.len() * core::mem::size_of::<u32>())
-    };
-    println!("cycle-tracker-end: read vk digest");
 
     println!("cycle-tracker-start: read previous groth16 proof");
     let previous_groth16_proof: Vec<u8> = sp1_zkvm::io::read();
@@ -106,14 +106,17 @@ pub fn main() {
 
     println!("cycle-tracker-start: read previous proof checkpoints");
     let previous_proof_checkpoints: Vec<Groth16VkeyCheckpoint> = public_values_buffer.read();
+    println!("{:?}", previous_proof_checkpoints);
     println!("cycle-tracker-end: read previous proof checkpoints");
     
     println!("cycle-tracker-start: read previous proof genesis hash");
     let previous_proof_genesis_hash: Vec<u8> = public_values_buffer.read();
+    println!("{:?}", previous_proof_genesis_hash);
     println!("cycle-tracker-end: read previous proof genesis hash");
     
     println!("cycle-tracker-start: read previous proof h2 hash");
     let previous_proof_h2_hash: Vec<u8> = public_values_buffer.read();
+    println!("{:?}", previous_proof_h2_hash);
     println!("cycle-tracker-end: read previous proof h2 hash");
     
     println!("cycle-tracker-start: read previous proof vkey digest");
@@ -129,6 +132,8 @@ pub fn main() {
     if !is_upgrade {
         println!("cycle-tracker-start: verify previous proof for non-upgrade");
         if previous_proof_vkey_digest != vk_digest {
+            println!("previous_proof_vkey_digest: {:?}", previous_proof_vkey_digest);
+            println!("vk_digest: {:?}", vk_digest);
             panic!("Vkey must match previous proof's vkey, except for upgrades");
         }
 
@@ -136,7 +141,7 @@ pub fn main() {
             panic!("Checkpoints must match previous proof's checkpoints, except for upgrades");
         }
 
-        sp1_zkvm::lib::verify::verify_sp1_proof(&vk_digest, &pv_digest);
+        sp1_zkvm::lib::verify::verify_sp1_proof(&vk_digest, public_values_digest.as_ref());
         println!("cycle-tracker-end: verify previous proof for non-upgrade");
     } else {
         println!("cycle-tracker-start: verify previous proof for upgrade");
@@ -162,7 +167,7 @@ pub fn main() {
 
                     Groth16Verifier::verify(
                         &previous_groth16_proof,
-                        &public_values_digest,
+                        public_values_digest.as_ref(),
                         &vk_hash_hex,
                         &vk
                     ).expect("Failed to verify previous groth16 proof");
@@ -170,7 +175,7 @@ pub fn main() {
                 },
                 None => {
                     println!("cycle-tracker-start: verify previous sp1 proof for upgrade");
-                    sp1_zkvm::lib::verify::verify_sp1_proof(&vk_digest, &pv_digest);
+                    sp1_zkvm::lib::verify::verify_sp1_proof(&vk_digest, public_values_digest.as_ref());
                     println!("cycle-tracker-end: verify previous sp1 proof for upgrade");
                 }
             }
