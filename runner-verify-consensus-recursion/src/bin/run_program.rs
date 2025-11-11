@@ -175,10 +175,13 @@ fn main() {
         // Compute and write vk_digest
         stdin.write(&vk.vk.hash_u32());
         if let Some(groth16_proof) = previous_proof.proof.try_as_groth_16() {
-            stdin.write_vec(groth16_proof.raw_proof.as_bytes().to_vec());
+            stdin.write(&groth16_proof.raw_proof.as_bytes().to_vec());
         } else {
-            stdin.write_vec(vec![]);
+            stdin.write(&Vec::<u8>::new());
         }
+
+        // write pv digest
+        stdin.write(&previous_proof.public_values.hash());
 
         // In the old version i use write instead of write_vec
         // don't remember why.

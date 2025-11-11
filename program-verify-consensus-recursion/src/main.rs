@@ -78,6 +78,7 @@ pub fn main() {
         println!("cycle-tracker-end: check if h1 is the genesis block");
         return
     }
+    println!("cycle-tracker-end: check if h1 is the genesis block");
 
     println!("cycle-tracker-start: read vk digest");
     let vk_digest: [u32; 8] = sp1_zkvm::io::read();
@@ -101,12 +102,23 @@ pub fn main() {
     let public_values_digest = Sha256::digest(&public_values);
     println!("cycle-tracker-end: read and process public values");
 
-    println!("cycle-tracker-start: read previous proof values");
+    println!("{:?}", public_values_buffer);
+
+    println!("cycle-tracker-start: read previous proof checkpoints");
     let previous_proof_checkpoints: Vec<Groth16VkeyCheckpoint> = public_values_buffer.read();
+    println!("cycle-tracker-end: read previous proof checkpoints");
+    
+    println!("cycle-tracker-start: read previous proof genesis hash");
     let previous_proof_genesis_hash: Vec<u8> = public_values_buffer.read();
+    println!("cycle-tracker-end: read previous proof genesis hash");
+    
+    println!("cycle-tracker-start: read previous proof h2 hash");
     let previous_proof_h2_hash: Vec<u8> = public_values_buffer.read();
+    println!("cycle-tracker-end: read previous proof h2 hash");
+    
+    println!("cycle-tracker-start: read previous proof vkey digest");
     let previous_proof_vkey_digest: [u32; 8] = public_values_buffer.read();
-    println!("cycle-tracker-end: read previous proof values");
+    println!("cycle-tracker-end: read previous proof vkey digest");
 
     println!("cycle-tracker-start: check if previous proof's genesis hash matches");
     if previous_proof_genesis_hash != genesis_hash {
