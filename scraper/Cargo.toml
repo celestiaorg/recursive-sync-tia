@@ -11,6 +11,10 @@ path = "src/bin/scraper.rs"
 name = "prover"
 path = "src/bin/prover.rs"
 
+[[bin]]
+name = "list_blocks"
+path = "src/bin/list_blocks.rs"
+
 [dependencies]
 tendermint-light-client-verifier = { workspace = true }
 tendermint = { workspace = true }

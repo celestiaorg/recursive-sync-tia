@@ -45,6 +45,10 @@ struct Args {
     /// dry run mode
     #[arg(short = 'd', long, default_value_t = false)]
     dry_run: bool,
+
+    /// Use groth16: useful for upgrades, especially upgrading SP1 versions, or different zkVMs.
+    #[arg(short = 'r', long, default_value_t = false)]
+    groth16: bool,
 }
 
 fn main() {
@@ -198,18 +202,31 @@ fn main() {
 
 
     if !args.dry_run {
-        let proof = client
-            .prove(&pk, &stdin)
-            .strategy(FulfillmentStrategy::Auction)
-            .compressed()
-            .run()
-            .expect("failed to generate proof");
+
+        let proof: SP1ProofWithPublicValues;
+
+        if args.groth16 {
+            proof = client
+                .prove(&pk, &stdin)
+                .strategy(FulfillmentStrategy::Auction)
+                .groth16()
+                .run()
+                .expect("failed to generate proof");
+        } else {
+            proof = client
+                .prove(&pk, &stdin)
+                .strategy(FulfillmentStrategy::Auction)
+                .compressed()
+                .run()
+                .expect("failed to generate proof");
+        }
 
         // Save proof to output location as JSON
         let output_path = &args.output_proof;
         let proof_json = serde_json::to_string_pretty(&proof).expect("failed to serialize proof as JSON");
         fs::write(output_path, &proof_json).expect("failed to write proof JSON to output location");
         println!("Proof successfully saved to {:?}", output_path);
+
     } else {
         let result = client
             .execute(CONSENSUS_VERIFIER_RECURSION_ELF, &stdin)

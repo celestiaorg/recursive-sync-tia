@@ -154,6 +154,11 @@ pub fn main() {
         if incoming_checkpoint.program_vk_hash != previous_proof_vkey_digest {
             panic!("Program vkey hash must match previous proof's program vkey hash");
         }
+
+        if incoming_checkpoint.block_hash.to_vec() != h1.signed_header.header().hash().as_bytes().to_vec() {
+            panic!("Incoming checkpoint block hash must match h1 block hash");
+        }
+
         match &incoming_checkpoint.groth16_vk {
                 Some(vk) => {
                     println!("cycle-tracker-start: verify previous groth16 proof for upgrade");
@@ -178,7 +183,7 @@ pub fn main() {
                     sp1_zkvm::lib::verify::verify_sp1_proof(&vk_digest, public_values_digest.as_ref());
                     println!("cycle-tracker-end: verify previous sp1 proof for upgrade");
                 }
-            }
+        }
         println!("cycle-tracker-end: verify previous proof for upgrade");
     }
 
