@@ -22,6 +22,9 @@ struct Args {
     #[arg(short = 'u', long, value_name = "PATH")]
     upgrade_history: Option<PathBuf>,
 
+    #[arg(default_value_t = false, long, value_name = "DO_UPGRADE", short = 'a')]
+    do_upgrade: bool,
+
     /// Path to first header JSON file (required)
     #[arg(long, value_name = "PATH")]
     h1: PathBuf,
@@ -158,7 +161,7 @@ fn main() {
     let mut stdin = SP1Stdin::new();
 
     // Write is_upgrade flag
-    stdin.write(&false);
+    stdin.write(&args.do_upgrade);
 
     // Write checkpoints
     stdin.write(&upgrade_history);

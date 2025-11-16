@@ -33,9 +33,9 @@ impl Buffer {
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Path to the old checkpoint JSON file (required)
+    /// Path to the old checkpoint JSON file (optional)
     #[arg(short = 'o', long, value_name = "OLD_CHECKPOINTS")]
-    old_checkpoints: std::path::PathBuf,
+    old_checkpoints: Option<std::path::PathBuf>,
 
     /// Path to the previous proof file
     #[arg(short = 'p', long, value_name = "PREVIOUS_PROOF")]
@@ -60,10 +60,13 @@ fn main() {
 
     let args = Args::parse();
 
-    // Read old checkpoints
-    let mut old_checkpoints: Vec<Groth16VkeyCheckpoint> = serde_json::from_reader(
-        std::fs::File::open(&args.old_checkpoints).expect("Failed to open old checkpoints file")
-    ).expect("Failed to parse old checkpoints JSON");
+    // Read old checkpoints or use empty vec
+    let mut old_checkpoints: Vec<Groth16VkeyCheckpoint> = match &args.old_checkpoints {
+        Some(path) => serde_json::from_reader(
+            std::fs::File::open(path).expect("Failed to open old checkpoints file")
+        ).expect("Failed to parse old checkpoints JSON"),
+        None => vec![],
+    };
 
     // Read the previous proof
     if !args.previous_proof.exists() {
