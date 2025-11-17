@@ -11,6 +11,10 @@ path = "src/bin/prove_from_headers_dir.rs"
 name = "run_program"
 path = "src/bin/run_program.rs"
 
+[[bin]]
+name = "verify_groth16"
+path = "src/bin/verify_groth16.rs"
+
 [dependencies]
 sp1-sdk = { workspace = true , default-features = false }
 sp1-verifier = { workspace = true }
